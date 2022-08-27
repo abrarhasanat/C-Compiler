@@ -12,7 +12,9 @@ I DW  ?
 J DW  ?  
 TO_FIND DW ?  
 
-NOT_FOUND DB CR, LF, 'NOT FOUND! $'
+NOT_FOUND DB CR, LF, 'NOT FOUND! $' 
+FOUND_MSG DB CR , LF , 'FOUND!' , CR , LF , '$'      
+
 
 .CODE 
 
@@ -20,7 +22,8 @@ NOT_FOUND DB CR, LF, 'NOT FOUND! $'
 TAKE_INPUT PROC
     ; fast BX = 0
   
-    
+    PUSH BP
+	MOV BP, SP
     PUSH AX
     PUSH BX
     PUSH CX
@@ -58,9 +61,10 @@ TAKE_INPUT PROC
     
      POP CX 
      POP BX
-     POP AX
+     POP AX  
+     POP BP
        
-    RET
+    RET 0
     
     
 TAKE_INPUT ENDP
@@ -68,60 +72,44 @@ TAKE_INPUT ENDP
  
  
  
-
-ARRAY_INPUT PROC
-    PUSH AX 
-    PUSH BX 
-    PUSH CX 
-    
-    
-    MOV SI, OFFSET ARRAY ; POINTS TO THE BEGINING OF THE ARRAY
-    MOV CX , MAX_SIZE ;
-    ARR_IN_LOOP:
-    CALL TAKE_INPUT ; INPUT NUMBER IS STORED IN BX ; 
-    CALL PRINT_NEWLINE
-    MOV [SI] , DX ; STORED IN ARRAY[BX/2] 
-    ADD SI, 2 ;   
-    
-    LOOP ARR_IN_LOOP        
-    
-    POP CX
-    POP BX
-    POP AX
-    RET
-ARRAY_INPUT ENDP    
- 
- 
- 
- 
  
 
 
-PRINT_ARRAY PROC
+PRINT_ARRAY PROC 
+    PUSH BP
+	MOV BP, SP
     PUSH AX
     PUSH BX
     PUSH CX
      
     MOV BX, OFFSET ARRAY; 
+    MOV SI,0 ;
     MOV CX , MAX_SIZE ;
     PRINT_ARRAY_LOOP: 
-    MOV AX ,[BX] 
+    MOV AX ,ARRAY[SI] 
     PUSH AX
     CALL PRINT_DECIMAL_INTEGER
-    ADD BX , 2
+    ADD BX , 2        
+    ADD SI , 2
     LOOP PRINT_ARRAY_LOOP ; 
     
     POP CX 
     POP BX
-    POP AX
-    RET
+    POP AX 
+    POP BP
+    RET 
 PRINT_ARRAY ENDP
     
 
 
 
  
-INSERTION_SORT PROC
+INSERTION_SORT PROC    
+     PUSH BP
+	 MOV BP, SP
+     PUSH AX
+     PUSH BX
+     PUSH CX
      ; for (int i = 1; i < n ; ++) ;    
      MOV CX ,MAX_SIZE; 
      SUB CX , 1; 
@@ -153,8 +141,11 @@ INSERTION_SORT PROC
      ADD SI , 2
      LOOP FOR_LOOP ; 
                   
-                  
-     RET
+     POP CX
+     POP BX
+     POP AX
+     POP BP
+     RET  0
        
      
 INSERTION_SORT ENDP 
@@ -168,19 +159,21 @@ INSERTION_SORT ENDP
 
 
 BINARY_SEARCH PROC 
-  
+   PUSH BP
+  MOV BP, SP
   PUSH AX ;
   PUSH BX ; 
   PUSH CX ;
    
   XOR AX, AX ; L = 0  ;
-  MOV CX, MAX_SIZE; R = N - 1; 
-  DEC CX
+  MOV CX, MAX_SIZE; R = N; 
+  
   WHILE_LOOP_:
-  CMP AX, CX 
+  CMP AX, CX     ; while(l <r ) ;
   JGE END_WHILE
   MOV SI , AX ; MID = L
-  ADD SI , BX ; MID = L + R; 
+  ADD SI , CX ; MID = L + R;  
+  ;SHR SI, 1;                     ; mid /= 2; 
   MOV BX , ARRAY[SI]
   
   CMP TO_FIND, BX ;
@@ -194,7 +187,7 @@ BINARY_SEARCH PROC
      JMP WHILE_LOOP_             
   LESS :
      MOV CX, SI ; 
-     SHR CX , 1;
+    SHR CX , 1;
      JMP WHILE_LOOP_ 
   EQUAL:
      MOV DX , SI ; 
@@ -209,13 +202,20 @@ BINARY_SEARCH PROC
    JMP END_BINARY_SEARCH;
   
   
-  FOUND : 
+  FOUND: 
+  
     PUSH DX ;
     CALL PRINT_DECIMAL_INTEGER 
+    
+    LEA DX, FOUND_MSG ;
+    MOV AH, 9;
+    INT 21H; 
+     
   END_BINARY_SEARCH:
     POP CX ; 
     POP BX ;
-    POP AX ;
+    POP AX ; 
+    POP BP
     RET 
   
   
@@ -244,21 +244,52 @@ MAIN PROC
     
     
     CALL TAKE_INPUT ; 
-    MOV MAX_SIZE, DX; 
-    CALL PRINT_NEWLINE ;
+    MOV MAX_SIZE, DX;  
     
-    CALL ARRAY_INPUT ;
-    CALL INSERTION_SORT ;
+    CMP DX ,0 ;
+    JE END_PROGRAM 
+    CALL PRINT_NEWLINE
+    
+    
+    ;;take input of array   
+    
+    MOV SI, OFFSET ARRAY ; POINTS TO THE BEGINING OF THE ARRAY
+    MOV CX , MAX_SIZE ;
+    ARR_IN_LOOP:
+    CALL TAKE_INPUT ; INPUT NUMBER IS STORED IN BX ; 
+    CALL PRINT_NEWLINE
+    MOV [SI] , DX ; STORED IN ARRAY[BX/2] 
+    ADD SI, 2 ;  
+    LOOP ARR_IN_LOOP   
+    
+    
+    
+    
+  
+    CALL INSERTION_SORT ;   
+    
+    
+     
+    CALL PRINT_NEWLINE
+    
+    
     CALL PRINT_ARRAY
     
     
     
-    CALL PRINT_NEWLINE ;
+    CALL PRINT_NEWLINE ;   
     
-    CALL TAKE_INPUT; 
+    
+    CALL TAKE_INPUT;  
+    
+    CALL PRINT_NEWLINE
+    
     MOV TO_FIND , DX ;
     CALL BINARY_SEARCH
-  
+     
+     
+     
+    
    
     
     ;------------------------------------
@@ -270,7 +301,7 @@ MAIN PROC
     
     
       
-
+    END_PROGRAM:
 	; interrupt to exit
     MOV AH, 4CH
     INT 21H
@@ -408,7 +439,7 @@ PRINT_NEWLINE PROC
         
         POP BP
         
-        RET
+        RET 2
 
 
     PRINT_DECIMAL_INTEGER ENDP
