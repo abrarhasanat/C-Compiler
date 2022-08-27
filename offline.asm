@@ -1,4 +1,4 @@
-.MODEL SMALL 
+                                     .MODEL SMALL 
 .STACK 100H 
 .DATA
 
@@ -6,16 +6,25 @@ N DW ?
 CR EQU 0DH
 LF EQU 0AH  
 
-MAX_SIZE EQU 100
+MAX_SIZE DW ?
 ARRAY DW MAX_SIZE DUP (?)     
-I DW (?)
-J DW (?)
+I DW  ?
+J DW  ?  
+TO_FIND DW ?  
+
+NOT_FOUND DB CR, LF, 'NOT FOUND! $'
 
 .CODE 
 
 
 TAKE_INPUT PROC
     ; fast BX = 0
+  
+    
+    PUSH AX
+    PUSH BX
+    PUSH CX
+  
     
     XOR BX, BX
     
@@ -41,57 +50,216 @@ TAKE_INPUT PROC
     MOV AX, 10
     MUL BX
     ADD AX, CX
-    MOV BX, AX
+    MOV DX , AX
     JMP INPUT_LOOP
     
-    END_INPUT_LOOP:    
+    END_INPUT_LOOP: 
+    
+    
+     POP CX 
+     POP BX
+     POP AX
+       
+    RET
     
     
 TAKE_INPUT ENDP
 
-
+ 
+ 
+ 
 
 ARRAY_INPUT PROC
-    MOV BX, OFFSET ARRAY ; POINTS TO THE BEGINING OF THE ARRAY
+    PUSH AX 
+    PUSH BX 
+    PUSH CX 
+    
+    
+    MOV SI, OFFSET ARRAY ; POINTS TO THE BEGINING OF THE ARRAY
     MOV CX , MAX_SIZE ;
     ARR_IN_LOOP:
     CALL TAKE_INPUT ; INPUT NUMBER IS STORED IN BX ; 
-    MOV [BX] , AX ; STORED IN ARRAY[BX/2] 
-    ADD BX, 2 ; 
-    LOOP ARR_IN_LOOP WSL
-ARRYA_INPUT ENDP    
+    CALL PRINT_NEWLINE
+    MOV [SI] , DX ; STORED IN ARRAY[BX/2] 
+    ADD SI, 2 ;   
+    
+    LOOP ARR_IN_LOOP        
+    
+    POP CX
+    POP BX
+    POP AX
+    RET
+ARRAY_INPUT ENDP    
+ 
+ 
+ 
+ 
+ 
 
 
+PRINT_ARRAY PROC
+    PUSH AX
+    PUSH BX
+    PUSH CX
+     
+    MOV BX, OFFSET ARRAY; 
+    MOV CX , MAX_SIZE ;
+    PRINT_ARRAY_LOOP: 
+    MOV AX ,[BX] 
+    PUSH AX
+    CALL PRINT_DECIMAL_INTEGER
+    ADD BX , 2
+    LOOP PRINT_ARRAY_LOOP ; 
+    
+    POP CX 
+    POP BX
+    POP AX
+    RET
+PRINT_ARRAY ENDP
+    
+
+
+
+ 
 INSERTION_SORT PROC
      ; for (int i = 1; i < n ; ++) ;    
      MOV CX ,MAX_SIZE; 
      SUB CX , 1; 
-     MOV BX, OFFSET ARRAY
-     FOR_LOOP: 
+     MOV BX, OFFSET ARRAY 
+     MOV SI, 2
      
      
      
+     FOR_LOOP:
+     MOV DX , ARRAY[SI] ; TEMP = ARRAU[i];   
+     MOV DI , SI ; j = i - 1; 
+     SUB DI , 2  
      
-INSERTION_SORT ENDP
+
+     
+     WHILE_LOOP:
+     
+     CMP DX, ARRAY[DI] ;  TEMP < ARRAY[j] ; 
+     JGE EXIT_WHILE  
+     MOV AX,ARRAY[DI] 
+     MOV ARRAY[DI + 2], AX
+     SUB DI, 2 ; --j 
+     CMP DI ,0 ; 
+     JGE WHILE_LOOP
+     
+     EXIT_WHILE:
+     
+     MOV ARRAY[DI + 2], DX ; ARRAY[J+1] = TEMP;
+     ADD SI , 2
+     LOOP FOR_LOOP ; 
+                  
+                  
+     RET
+       
+     
+INSERTION_SORT ENDP 
+
+
+
+
+
+
+
+
+
+BINARY_SEARCH PROC 
+  
+  PUSH AX ;
+  PUSH BX ; 
+  PUSH CX ;
+   
+  XOR AX, AX ; L = 0  ;
+  MOV CX, MAX_SIZE; R = N - 1; 
+  DEC CX
+  WHILE_LOOP_:
+  CMP AX, CX 
+  JGE END_WHILE
+  MOV SI , AX ; MID = L
+  ADD SI , BX ; MID = L + R; 
+  MOV BX , ARRAY[SI]
+  
+  CMP TO_FIND, BX ;
+  JE EQUAL
+  JG GREATER 
+  JL LESS
+  GREATER : 
+     MOV AX , SI ; L = MID * 2       
+     SHR AX,1 ;   L = MID 
+     INC AX ;  L = MID + 1 ;
+     JMP WHILE_LOOP_             
+  LESS :
+     MOV CX, SI ; 
+     SHR CX , 1;
+     JMP WHILE_LOOP_ 
+  EQUAL:
+     MOV DX , SI ; 
+     SHR DX, 1; 
+     JMP FOUND
+  
+  END_WHILE: 
+   
+   LEA DX , NOT_FOUND ;
+   MOV AH , 9; 
+   INT 21H ;
+   JMP END_BINARY_SEARCH;
+  
+  
+  FOUND : 
+    PUSH DX ;
+    CALL PRINT_DECIMAL_INTEGER 
+  END_BINARY_SEARCH:
+    POP CX ; 
+    POP BX ;
+    POP AX ;
+    RET 
+  
+  
+     
+  
+  
+
+BINARY_SEARCH ENDP
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
+                  
 
 MAIN PROC 
     MOV AX, @DATA
-    MOV DS, AX
-    
-    CALL TAKE_INPUT ; STORED IN BX ;   
+    MOV DS, AX 
     
     
-    push bx;    
-    CALL PRINT_NEWLINE
-    call PRINT_DECIMAL_INTEGER
+    CALL TAKE_INPUT ; 
+    MOV MAX_SIZE, DX; 
+    CALL PRINT_NEWLINE ;
     
-    ; printing CR and LF
-    MOV AH, 2
-    MOV DL, CR
-    INT 21H
-    MOV DL, LF
-    INT 21H
+    CALL ARRAY_INPUT ;
+    CALL INSERTION_SORT ;
+    CALL PRINT_ARRAY
     
+    
+    
+    CALL PRINT_NEWLINE ;
+    
+    CALL TAKE_INPUT; 
+    MOV TO_FIND , DX ;
+    CALL BINARY_SEARCH
+  
+   
     
     ;------------------------------------
     ; start from here
