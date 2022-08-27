@@ -1,4 +1,4 @@
-                                     .MODEL SMALL 
+                                                                        .MODEL SMALL 
 .STACK 100H 
 .DATA
 
@@ -14,8 +14,9 @@ TO_FIND DW ?
 
 NOT_FOUND DB CR, LF, 'NOT FOUND! $' 
 FOUND_MSG DB CR , LF , 'FOUND!' , CR , LF , '$'      
-
-
+L DW ?
+R DW ?
+INDEX DW ?
 .CODE 
 
 
@@ -159,66 +160,63 @@ INSERTION_SORT ENDP
 
 
 BINARY_SEARCH PROC 
-   PUSH BP
-  MOV BP, SP
-  PUSH AX ;
-  PUSH BX ; 
-  PUSH CX ;
+
    
-  XOR AX, AX ; L = 0  ;
-  MOV CX, MAX_SIZE; R = N; 
-  
+  XOR AX, AX ; L = 0  ; 
+  MOV AX ,L
+  MOV BX ,MAX_SIZE 
+  MOV INDEX , 0
+  MOV DX, TO_FIND
   WHILE_LOOP_:
-  CMP AX, CX     ; while(l <r ) ;
-  JGE END_WHILE
-  MOV SI , AX ; MID = L
-  ADD SI , CX ; MID = L + R;  
-  ;SHR SI, 1;                     ; mid /= 2; 
-  MOV BX , ARRAY[SI]
+  CMP AX , BX 
+  JGE END_WHILE_LOOP_     ; WHILE(L < R) ;
+  MOV CX, AX   
+  ADD CX, BX
+  SHR CX ,1    ; MID = (L + R ) / 2
+  MOV SI , CX
+  ADD SI, SI 
   
-  CMP TO_FIND, BX ;
-  JE EQUAL
-  JG GREATER 
+  CMP DX, ARRAY[SI]
+  JG GRATER
   JL LESS
-  GREATER : 
-     MOV AX , SI ; L = MID * 2       
-     SHR AX,1 ;   L = MID 
-     INC AX ;  L = MID + 1 ;
-     JMP WHILE_LOOP_             
-  LESS :
-     MOV CX, SI ; 
-    SHR CX , 1;
-     JMP WHILE_LOOP_ 
+  JE EQUAL
+  
+  GRATER:
+  INC CX 
+  MOV AX , CX ; L = MID + 1 
+  JMP WHILE_LOOP_ 
+                           
+  LESS:
+ ; DEC CX
+  MOV BX , CX ; R = MID;
+  JMP WHILE_LOOP_
+  
   EQUAL:
-     MOV DX , SI ; 
-     SHR DX, 1; 
-     JMP FOUND
+  INC CX
+  MOV INDEX , CX  
+  JMP FOUND
   
-  END_WHILE: 
+  
+  END_WHILE_LOOP_:
    
-   LEA DX , NOT_FOUND ;
-   MOV AH , 9; 
-   INT 21H ;
-   JMP END_BINARY_SEARCH;
+  LEA DX, NOT_FOUND 
+  MOV AH,9
+  INT 21H ; 
+  CALL PRINT_NEWLINE
+  JMP END_SEARCH
   
+  FOUND:
+  LEA DX , FOUND_MSG
+  MOV AH,9
+  INT 21H
   
-  FOUND: 
+  MOV BX, INDEX 
+  PUSH BX
+  CALL PRINT_DECIMAL_INTEGER   
   
-    PUSH DX ;
-    CALL PRINT_DECIMAL_INTEGER 
-    
-    LEA DX, FOUND_MSG ;
-    MOV AH, 9;
-    INT 21H; 
-     
-  END_BINARY_SEARCH:
-    POP CX ; 
-    POP BX ;
-    POP AX ; 
-    POP BP
-    RET 
+  END_SEARCH:
   
-  
+   
      
   
   
@@ -253,13 +251,13 @@ MAIN PROC
     
     ;;take input of array   
     
-    MOV SI, OFFSET ARRAY ; POINTS TO THE BEGINING OF THE ARRAY
+    MOV DI, 0 ; POINTS TO THE BEGINING OF THE ARRAY
     MOV CX , MAX_SIZE ;
     ARR_IN_LOOP:
     CALL TAKE_INPUT ; INPUT NUMBER IS STORED IN BX ; 
     CALL PRINT_NEWLINE
-    MOV [SI] , DX ; STORED IN ARRAY[BX/2] 
-    ADD SI, 2 ;  
+    MOV ARRAY[DI] , DX ; STORED IN ARRAY[BX/2] 
+    ADD DI, 2 ;  
     LOOP ARR_IN_LOOP   
     
     
@@ -273,9 +271,9 @@ MAIN PROC
     CALL PRINT_NEWLINE
     
     
-    CALL PRINT_ARRAY
+     CALL PRINT_ARRAY
     
-    
+    Search:
     
     CALL PRINT_NEWLINE ;   
     
@@ -284,9 +282,14 @@ MAIN PROC
     
     CALL PRINT_NEWLINE
     
-    MOV TO_FIND , DX ;
-    CALL BINARY_SEARCH
-     
+    MOV TO_FIND , DX ; 
+    MOV SI ,OFFSET ARRAY
+    CALL BINARY_SEARCH    
+    
+   
+    
+    
+    JMP Search;
      
      
     
